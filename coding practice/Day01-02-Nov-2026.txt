@@ -1,0 +1,93 @@
+---Ansible task Installing Nginx on Pathnex server
+
+- name: Installing Nginx on Pathnex server
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: present
+
+
+
+--- Docker Installation and containerization
+
+docker --version
+docker run ubuntu echo "Hello Pathnex"
+
+#Docker File
+FROM ubuntu:22.04
+CMD ["echo", "Hello Pathnex"]
+
+
+## terraform task create ec2 instance t3.micro
+
+provide "aws"{
+
+    region = "ap-south-1"
+}
+
+resource "aws_instance" "PathnexEC2"{
+
+    ami           = "ami-0f5ee92e2d63afc18"
+    instance_type = "t3.micro"
+
+    tags = {
+        Name = "PathnexEC2"
+    }
+}
+
+# kubernetes Task - create nginx pod 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: Pathnex-pod
+specs:
+  containers:
+    - name: web
+      image: nginx:latest
+      ports:
+      - containerPort: 80  
+
+
+# shell script
+
+#!/bin/bash
+echo "Date: $(date)"
+echo "Hostnames: $(hostname)"
+
+# Git Integration
+$ Jenkins pipeline - checkout a git repository
+
+pipeline{
+
+    agent any
+    stages{
+        stage('Checkout'){
+            steps{
+                git branch 'main', url: 'https://github.com/Pathnex/sample-python-app.git'
+            }
+        }
+        stage('List Files'){
+            steps{
+                sh ls -la
+            }
+        }
+    }
+}
+
+## GitLab CI - checkout Git
+# checkout a git repository with in GitLab CI
+
+stages: 
+  - checkout
+
+git-checkout:
+  stage: checkout
+  script:
+    -git clone  https://github.com/Pathnex/sample-java-app.git
+    - cd sample-python-app
+    -ls -la
