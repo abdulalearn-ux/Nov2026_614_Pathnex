@@ -1,0 +1,3 @@
+# What I did today
+#1. Revised and did practical of all the Linux concepts taught in today's class - 1.5 hr
+#2. Practiced coding and pushed the code to GitHub - 1 hr
