@@ -1,0 +1,152 @@
+Day 02 - service and tags 
+
+Ansible - Installing and Enabling Nginx
+
+- name: Installing and Enabling Nginx
+  hosts: all
+  become: yes
+
+  tasks:
+  - name: Install Nginx
+    yum:
+      - name: nginx
+        state: present
+  
+  - name: Enable Nginx
+    service:
+    - name: nginx
+      state: started
+      enabled: yes
+
+
+
+Terraform - Ec2 with tags (t5.large) 
+
+provider "aws"{
+    region = ap-south-1
+}
+
+resource "aws_instance" "PathnexEc2"{
+    ami           = "ami-012abdc4567865346"
+    instance_type = t5.large
+
+    tags = {
+
+        Name        = "Pathnex-Server"
+        Environment = "Dev"
+        Owner       = "Abdul Ahad"
+    }
+}
+
+
+# Kubernetes - Deployment with 2 Replicas
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pathnex-Deployment
+spec:
+  Replicas: 2
+  selector:
+    matchLabels:
+      app: pathnex-app
+  template:
+    metadata:
+      labels:
+        app: pathnex-app
+    spec:
+      containers:
+        - name: app
+          image: nginx
+          ports:
+            - containerPort: 80        
+
+
+# Shell Script Disk Usage
+#!/bin/bash
+df -h           
+
+# Docker image and container
+docker pull ubuntu
+docker images
+docker ps -a
+
+# Docker File
+
+FROM ubuntu:22.04
+RUN apt update
+CMD ["echo", "Hello Pathnex"]
+
+
+# jenkins Pipeline - maven build
+
+## Learn to compile, test, and package a java project using maven
+
+
+Pipeline{
+
+    agent any 
+    tools{
+
+        maven 'Maven-3.10.1'
+        jdk 'JDK-25'
+    }
+
+    stages {
+
+        stage('checkout'){
+            steps{
+                git url: 'https://github.com/Pathnex/java-app.git'
+            }
+        }
+
+        stage('compile'){
+            steps{
+                sh 'mvn clean compile'
+            }
+
+        }
+
+        stage('Test'){
+            steps[
+                sh 'mvn Test'
+            ]
+        }
+
+        stage('package'){
+            steps{
+                sh 'mv package'
+            }
+        }
+    }
+}
+
+# GitLab CI - Maven build
+
+stages:
+  - build
+  - test
+  - package
+
+
+maven-build:
+  stage: build
+  image: maven:3.10.1-jdk-27
+  script:
+    - git clone https://github.com/Pathnex/java-app.git
+    - cd java-app
+    - mvn clean compile
+
+maven-test:
+  stage: test
+  image: maven:3.10.1-jdk-27
+  script:
+  - cd java-app
+  - mvn test
+
+maven package:
+  stage: package
+  image: maven:3.10.1-jdk-27
+  script:
+    - cd java-app
+    - mvn package
