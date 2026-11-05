@@ -1,0 +1,200 @@
+Day 03 - Ansible, terraform & kubernetes basics
+
+Ansible - Installing apche and start service 
+
+- name: Installing Apache and start service
+  hosts: all
+  become: yes
+  tasks:
+  - name: Installing Apache
+    -yum: 
+      name: httpd
+      state: present
+
+  - name: starting service 
+    - service:
+        name: httpd
+        state: started
+        enabled: yes
+
+
+
+# terraform ec2 instance creation
+provider "aws"{
+    region = "ap-south-1"
+}           
+
+resource "aws_instance" "pathnexEc2"{
+    ami           = "ami-abcd0123456789"
+    instance_type = "t3.medium"
+    tagse         = {
+        name = "pathnex - T3"
+            }
+}
+
+#kubernetes - pod creation with 3 replicas
+
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: pathnex Deployment
+spec:
+  replicas: 3
+  selector:
+    matchLables:
+      app: pathnex-app
+  template:
+    metadata:
+      labels:
+        app: pathnex-app
+
+    spec:
+      containers:
+        - name: app
+          image: nginx
+          ports:
+           - containerPort: 80
+
+
+# shell script to print user info
+#!/bin/bash
+echo "current user: $(whoami)"
+echo "current user group: $(groups)"
+
+#Docker file for nginx web server 
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html/index.html
+
+#html
+<h1> Hello pathnex</h1>
+
+# Bash
+# Real Path
+/usr/share/nginx/html
+
+# Bash
+docker build -t pathnex-nginx .
+docker run -d -p 80:80 pathnex-nginx
+
+# Ansible create user 
+
+- name: create user name Pathnex-user
+  hosts: all
+  become: true
+
+  tasks:
+    - name: create a user name patnex-user
+      user:
+        name: pathnex-admin
+        shell: /bin/bash
+
+
+# terraform - security group (r6i.4xlarge EC2)
+
+provider "aws"{
+    region = "ap-south-2"
+}
+
+resource "aws_instance" "pathnexEc2"{
+
+    ami                    = "ami-0123456789ancd"
+    instance_type          = "r6i.4xlarge"
+    vpc_security_group_ids = [aws_security_group.pathnexSG.id]
+
+    tags = {
+        name: "Pathnex-EC2"
+    }
+}
+
+#kubernets add environment variable
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pathnex-env-pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      env:
+        - name: APP_ENV
+          value: "Production"  
+
+# shell script check if file exist or not
+
+#!/bin/bash
+
+FILE="/tmp/pathnex.txt"
+
+if [ -f "$FILE" ]; then
+  echo "File Exists"
+else 
+  echo "File dose not exist"
+
+fi
+
+#NodeJS build 
+#jenkins
+pipeline{
+    agent any
+    tools{
+        nodejs "NodeJS-18"
+    }
+}
+
+stages{
+    stage('checkout'){
+        steps{
+            git url: 'https://github.com/Pathnex/sample-node-app.git' 
+        }
+    }
+
+    stage('install dependencies'){
+        steps{
+            sh 'npm install'
+        }
+    }
+
+    stage('Run Test'){
+        steps{
+            sh 'run test'
+        }
+    } 
+
+    stage('Buidl){
+        steps{
+            sh 'npm run build'
+        }
+    }
+}
+
+#gitlab Ci - NodeJS buidld
+
+stages:
+  - install
+  - test
+  -build
+
+node-install:
+  stage: install
+  image: node:18
+  script:
+    - git clone  https://github.com/Pathnex/sample-node-app.git
+    - cd sample-node-app   
+    - npm install
+
+node-test:
+  stage: test
+  image: node:18
+  script:
+    - cd sample-node-app
+    - npm test
+
+
+node-build:
+  stage: build
+  image: node:18
+   script:
+    - cd sample-node-app
+    - npm run build
+   
