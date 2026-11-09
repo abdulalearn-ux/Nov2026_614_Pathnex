@@ -1,0 +1,247 @@
+# install package using variable
+
+- name: install packages using variables
+  hosts: all
+  become: yes
+  
+  vars:
+    pathnex_package:
+      - tree
+      - unzip
+      - vim
+
+  tasks:
+    - name: install require package
+      yum:
+        name: "{{ pathnex_package }}"
+        state: present
+
+
+# terraform create VPC + subnet
+
+provider "aws"{
+    region = "ap-south-1"
+}
+
+resource "aws_vpc" "pathnex_vpc" {
+    cidr_block = "10.10.0.0/16"
+
+    tags = {
+        Name = "pathnex_vpc
+    }
+}
+
+resource "aws_subnet" "Pathnex_subnet" {
+    vpc_id                  = aws_vpc.pathnex_vpc.id 
+    cidr_block              = "10.10.1.0/24"
+    map_public_ip_on_launch = true 
+
+    tags = {
+        Name = "Pathnex_subnet"
+    }
+}
+
+# kubernets add liveness and readiness probes
+
+apiVersion: v2
+kind: Pod 
+metadata:
+  name: pathnex_pod
+spec:
+  container:
+    - name: web
+      image: nginx
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 5
+      readinessprobe:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 3
+
+
+# shell script loops
+
+#!/bin/bash
+
+for item in Pathnex DevOps Training; do 
+  eco "Item: $item"
+done
+
+
+#jenkins conditional execution
+
+pipeline {
+    agent any
+    parameters {
+        string(name: 'ENVIRONMENT', defaultValue: 'dev', description: 'Deployment Environment')
+    }
+    environment {
+        INSTITUTE_NAME = "Pathnex" 
+    }
+
+    stages{
+        stage('checkout'){
+            steps{
+                git branch:  'main', url: 'https://github.com/Pathnex/sample-java-app.git'
+            }
+        }
+
+        stage('Build'){
+            when{
+                branch 'main'
+            }
+            steps{
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression { params.ENVIRONMENT == 'dev'}
+            }
+
+            steps{
+                sh 'echo "Deploying to $ENVIRONMENT by $INSTITUTE_NAME"'
+            }
+        }
+    }
+}
+
+# GitLab CI conditional jobs
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: maven:3.10.1-jdk-20
+  script:
+    - git clone https://github.com/Pathnex/sample-java-app.git
+    - cd simple-java-app
+    - sh mvn clean compile
+
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image = alpine:latest
+  script:
+    - echo "Deploying to $CI_ENVIRONMENT_NAME by Pathnex"
+  only:
+    variable:
+      - $CI_ENVIRONMENT_NAME == "dev"  
+
+
+# ansible docker compose
+
+- name: install docker compose
+  hosts: all
+  become: yes
+  tasks:
+    - name: install dependencies
+      yum:
+        name: "python3-pip"
+        state: present
+    - name: install docker-compoese
+      pip:
+        name: docker-compose
+
+
+
+# Terraform ec2 with sg and ebs volume
+
+resource "aws_security_group" "allow_ssh_http" {
+    name = "allow_ssh_http"
+    description = "Allow SSH and HTTPS access"
+    ingress {
+        from_port = 22
+        to_port = 22
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port = 80
+        to_port = 80
+        protocol = "tcp"
+         cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+    
+# Kubernetes Service with NodePort
+
+apiVersion: v1
+kind: Service
+metadata:
+ name: pathnex-Service
+
+spec:
+  type: NodePort
+  selector:
+    app: pathnex-app
+  ports:
+    - protocol: TCP 
+      port: 80
+      nodePort: 30007 
+
+# jenkins docker build and push
+pipeline {
+    agent any 
+    stages {
+        stage('Build Docker Image') {
+            steps{
+                script{
+                    docker.build('pathnex-app')
+                }
+            }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.build('pathnex-app')
+                }
+            }
+        } 
+
+        stage('Push Docker Image) {
+            steps{
+                script {
+                    docker.withRegistry('https://docker.io', 'docker-credentials') {
+                        docker.image('pathnex-app').push('latest')
+                    }
+                }
+            }
+        }   
+
+        }
+    }
+} 
+
+# GitLab CI/CD Build and push
+
+stages:
+  - build
+  - push
+
+build:
+  stage: build
+  script:
+    - docker build -t pathnex-app .
+
+push:
+  stage: push 
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+    - docker push pathnex-app
+
+#Docker file
+
+FROM alpine:latest
+WORKDIR /opt/pathnex/alpine-app
+CMD ["echo", "Hello Pathnex]
