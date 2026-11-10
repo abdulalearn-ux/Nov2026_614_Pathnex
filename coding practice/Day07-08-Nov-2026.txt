@@ -1,0 +1,180 @@
+# setting up nginx with custom config
+
+- name: setup nginx with custom config
+  hosts: all
+  become: yes
+  tasks:
+  - name: install nginx
+      yum:
+        name: nginx
+        state: started
+  - name: copy custom nginx.conf
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+  - name: start nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+# Terraform - provision ec2 with iam role
+
+resource "aws_with_iam" "ec2_role {
+    name = "pathenx_ec2_role"
+    assume_role_policy = jsoncode({
+        version = "2012-10-17"
+        statement = [
+            {
+                Action = "sts:AssumeRole"
+                Effect = "Allow"
+                principal = {
+                    Service = "ec2.amazonaws.com"
+                }
+            }
+        ]
+    })
+}
+
+resource "aws_instance" "pathenx_ec2"{
+    ami = "ami-012abcdefghijdcatni"
+    instance_typr = t3.micro
+    iam_instance_profile = aws_iam_role.ec2_role.name
+    tags = {
+        name = "pathenx_ec2"
+    }
+}
+
+kubernetes congigMap and secret management
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pathenx-config 
+data:
+  app.properties: |
+    key=value
+
+----
+
+apiVersion: v1
+kind: secret
+metadata:
+  name: pathenx-secret
+
+type: Opaque
+data:
+  password: Poiuytrewq123
+
+# shell script    
+#!/bin/bash
+tar -czf /var/log/archived_logs.tar.gz /var/log/*.log
+
+# Docker java application
+
+class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello Pathnex");
+    }
+}
+
+FROM openjdk:17
+WORKDIR /opt/pathnex/java-app
+COPY Hello.java /opt/pathnex/java-app/
+RUN javac /opt/pathnex/java-app/Hello.java
+CMD ["java", "-cp", "/opt/pathnex/java-app", "Hello"]
+
+
+
+# Typing speed
+#install nginx
+
+- name: install nginx
+  hosts: all
+  become: yes
+
+  tasks:
+   - name: install nginx
+       yum:
+         name: nginx
+         state: present
+
+
+# Terraform ec2
+
+resource "aws_instance" "pathenx_ec2"{
+    ami = "ami-123456789abc"
+    instance_typr = "te.micro"
+    tags = {
+        Name = "Pathnex_server 
+    }
+}
+
+
+# kubernetes 2 replicas
+
+apiVersion: v1
+kind: deployment
+metadata: 
+  name: pathenx_ec2
+spec: 
+  replicas: 2
+  selector:  
+    matchLabels:
+      app: pathnex-app
+ template:
+   metadata:
+     labels:
+       app: pathnex:app
+    spec:
+      containers:
+        - name: app
+          image: nginx 
+          posrt: 
+            - containerPort:22  
+
+# shell
+!#/bin/bash
+
+echo "print" + "$(date) + $(uptime)"
+
+# parameterized build jenkins
+
+pipeline {
+    agent any
+    parameters {
+        string(name: 'ENVIRONMENT', defaultValue: 'dev', description: 'Deployment Environment')
+    }
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/Pathnex/sample-java-app.git'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'echo "Deploying to $ENVIRONMENT by $INSTITUTE_NAME"'
+            }
+        }
+    }
+}
+
+# ci parameterized build
+
+You will learn how to **use variables to parameterize GitLab jobs**.
+
+stages:
+  - deploy
+
+variables:
+  INSTITUTE_NAME: "Pathnex"
+  ENVIRONMENT: "dev"
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying to $ENVIRONMENT by $INSTITUTE_NAME"
