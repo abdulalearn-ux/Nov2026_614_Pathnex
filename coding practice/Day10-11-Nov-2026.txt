@@ -1,0 +1,244 @@
+## Ansible create docker containers for multiple application
+
+- name: setup docker containers for multiple applications
+  hosts: all
+  become: yes
+
+  tasks: 
+    - name: pulling application docker image 
+      docker_image:
+        name: my-web-app 
+        source: pull 
+
+    - name: pulling database docker image 
+      docker_image:
+        name: my-database-app 
+        source: pull    
+
+    - name: running web app container
+      docker_container:
+        name: web-app
+        image: my-web-app
+        state: started
+        published_ports:
+          - "8080:80"    
+
+    - name: running database app container
+      docker_container:
+        name: db-app
+        image: my-database-app
+        state: started
+        published_ports:
+          - "3306:3306"      
+
+#terraform VPC with private and public subnets
+
+resource  "aws_vpc" "main" {
+    cidr_block = "10.0.0.0/16"
+}
+
+
+resource "aws_subnet" "public"{
+    vpc_id = aws_vpc.main.id 
+    cidr_block = "10.0.0.0/16"
+    availability_zone = 'ap-south-1"
+
+}
+
+#kubernetes - deploying statefulset
+
+apiVersion: app/v1
+kind: Statefulset
+metadata: 
+  name: pathnex-db
+spec: 
+  serviceName: "pathnex-db"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pathnex-db
+    template:
+      metadata:
+        labels:
+          app: pathnex-db 
+      spec:
+        containers:
+          - name: db
+            image: mysql:5.7
+            VolumeMounts:
+              - mountPath: /var/lib/mysql
+                name: mysql-storage       
+    volumeClaimTemplates:
+      - metadata:
+          name: mysql-storage
+        spec:
+          accessModes: {"ReadWriteOnce"}
+          resources:
+            requests:
+              storage: 1Gi
+
+# jenkins - build and deploy to kubernetes
+
+pipeline{
+    agent any 
+    environment {
+        IMAGE_NAME = 'pathnex-web-app'
+    }
+    stages {
+        stage('Build docker Image') {
+            steps {
+                script {
+                    docker.build("$env.IMAGE_NAME")
+                }
+            }
+        }
+
+        stage('Push docker image') {
+            steps {
+                script {
+                    docker.withRegistry('https://docker.io', 'docker-credentials'){
+                        docker.image("${env.IMAGE_NAME}").push('latest')
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
+            }
+        }
+    }
+}
+
+# GitHub CI/CD - Build, push, and Deploy
+
+stages:
+  - build
+  - push
+  - deploy
+
+build: 
+  stage: build
+  script:
+    - docker build -t pathnex-web-app .
+
+push:
+  stage: push
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+    - docker push pathnex-web-app
+
+deploy: 
+  stage: deploy
+  script: 
+    - kubectl apply -f kubernetes/deployment.yaml
+
+
+#docker
+FROM ubuntu:22.04
+WORKDIR /opt/pathnex/devops-project
+COPY . /opt/pathnex/devops-project/
+CMD ["ls", "-l", "/opt/pathnex/devops-project"]
+
+
+# Ansible when condition
+
+- name: Install tool based on OS
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install htop
+        yum:
+          name: htop
+          state: present
+        when ansible_facts['os_family'] == "RedHat"  
+
+
+# Terraform route table association
+
+resource "aws_route_table" "PathnexRT" {
+    vpc_id = aws_vpc.pathnexVPC.id
+
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.pathnexIGW.id
+    }
+
+    tags = {
+        Name = "Pathnex-RouteTable"
+    }
+}
+
+resource "aws_route_table_association" "PathnexRTA"  {
+    subnet_id = aws_subnet.PathnexSubnet.id
+    rout_table_id = aws_route_table.PathnexRT.id
+}
+
+# kubernets secret 
+
+apiVersion: v1
+kind: secret
+metadata:
+  name: pathnex-secret
+type: Opaque
+data:
+  password: fghuytecnvo++  #"pathnex123" base64  
+
+# shell script 
+
+#!/bin/bash
+
+for i in {1..10}; do 
+  echo "Number: $i"
+done 
+
+#jenkins maven reuse dependencies to speed up build
+
+pipeline {
+    agent any
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git url: 'https://github.com/Pathnex/sample-java-app.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh'''
+                if [ -d ".m2" ]; then
+                    echo "Using cached dependencies"  
+                else
+                    mvn clean compile
+                fi 
+                '''        
+            }
+        }
+    }
+}
+
+# gitlab CI 
+
+stage:
+  - build
+
+build:
+  stage: build
+  image: maven:3.10.1-jdk-20
+  cache:
+    key: maven-cache
+    paths:
+      - .m2/repository
+
+  script:
+    - git clone  https://github.com/Pathnex/sample-java-app.git
+    - cd sample-jave-app
+    - mvn clean compile
