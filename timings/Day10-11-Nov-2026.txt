@@ -1,0 +1,4 @@
+# What I did today
+#1. Revised kubernetes architecture   - 1 hr
+#2. Practiced coding and pushed the code to GitHub - 1 hr
+#3. prepared for intro vedio record - 2 hrs
