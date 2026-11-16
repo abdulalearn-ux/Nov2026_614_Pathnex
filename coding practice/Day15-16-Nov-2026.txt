@@ -1,0 +1,225 @@
+# Deploy web application with multiple host
+
+- name: Deploy web app on multiple host
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: copy web app files
+      copy:
+        src: /path/to/web/app
+        dest: /var/www/html
+    - name: start web app service
+      service:
+        - name: apache2
+          state: started
+          enabled: yes
+
+
+# Terraform create ec2 with alb
+resource "aws_lb" "pathnex_lb" {
+    name               = "pathnex-lb
+    internal           = false
+    load_balancer_type = "application"
+    security_groups    = [aws_security_group.allow_ssh_http.id]
+    subnets            = [aws.subnet.public.id]
+}         
+
+resource "aws_instance" "pathnex_ec2" {
+    ami = "ami-9876543atnifd"
+    instance_type = "t3.micro"
+    security_groups = [aws_security_group.allow_ssh_http.id]
+
+    tags = {
+        Name = "Pathnex_EC2"
+    }
+}
+
+
+# kubernetes - install reddis with persistance via Helm charts
+
+helm install pathnex-redis bitnami/redis --set persistance.enabled=true --set persistance.size-8Gi
+
+# jenkins multi env deployment
+
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = "pathnex-web-app"
+        DEPLOY_ENV = "production"
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building Docker Image...'
+                docker.build("${IMAGE_NAME}")
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Testing'
+            }
+        }
+
+        stage ('Deploy to kubernetes') {
+            steps {
+                script {
+                    if (env.DEPLOY_ENV == 'production') {
+                        sh 'kubectl apply -f kubernetes/prod-deployment.yaml'
+                    }
+                    else {
+                        sh 'kubectl apply -f kubernetes/prod-dev.yaml'
+                    }
+                }
+            }
+        }
+    }
+}
+
+#GitLab CI 
+stages:
+  - build
+  - push 
+  - deploy 
+
+build:
+  stage: build
+  script: 
+    - docker build -t  pathnex-web-app .
+
+push:
+  stage: push 
+  script:
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "main"]; then
+        kubectl apply -f kubernetes/prod-deployment.yaml
+      else
+        kubectl apply -f kubernetes/dev-deployment.yaml  
+      fi 
+
+
+#docker multi run
+
+FROM ubuntu
+RUN apt update && apt install curl -y && apt install vim -y 
+
+CMD ["echo", "Hello Pathnex"]
+
+
+# Ansible Install java and set JAVA_HOME
+
+- name: install java on pathnex server
+  hosts: all
+  become: yes 
+
+  tasks: 
+  - name: Install java on pathnex server
+    yum:
+      name: java-11-openjdk
+      state: present
+  - name: set JAVA_HOME
+    lineinfine:
+      path: /etc/profile
+      line: 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk'
+
+# Terraform create S3 bucket 
+
+provider "aws" {
+    region = "ap-south-1"
+}
+
+resource "aws_s3_bucket" "pathnexBucket" {
+    bucket = "pathnex-devops-bucket"
+
+    tags = {
+        Name = "pathnexBucket"
+    }
+}
+
+# kubernetes cron jobs
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pathnex-cron 
+
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec: 
+      template:
+        spec:
+          containers:
+            - name: job 
+              image: busybox
+              command: ["sh", "-c", "echo pathnex CronJob running"]
+          restartPolicy: OnFailure
+
+
+# shell script read line by line
+
+#!/bin/bash
+
+FILE="/etc/passwd"
+
+while read line: do 
+  echo "Line: $line"
+done < $FILE  
+
+# jenkins slack notification
+
+pipeline {
+    agent any 
+    environment {
+        INSTITUTE_NAME = "Pathnex"
+        SLACK_CHANNEL = "#devops"
+
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/Pathnex/sample-java-app.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mv clean package'
+            }
+        }
+
+    }
+
+    post {
+        success {
+            slackSend(channel: "$SLACK_CHANNEL", message: "SUCCESS: $INSTITUTE_NAME Build #${env.BUILD_NUMBER}")
+        }
+
+        failure {
+            slackSend(channel: "$SLACK_CHANNEL", message: "FAILURE: $INSTITUTE_NAME Build #${env.BUILD_NUMBER}")
+        }
+    }
+     
+}
+
+# notify slack in gitlabCI
+
+stages:
+  - build
+
+variables: 
+  INSTITUTE_NAME: "Pathnex"
+  SLACK_WEBHOOK: "https://hooks.slack.com/services/XXXXX/YYYYY/ZZZZZ"
+
+  build:
+    stage: build
+    image: maven:3.8.1-jdk-17
+    script:
+      - git clone https://github.com/Pathnex/sample-java-app.git
+      - git sample-java-app
+      - mvn clean package
+      - curl -X POST -H 'Content-type: application/json' --data '{"text":"Build success for Pathnex"}' $SLACK_WEBHOOK
+
