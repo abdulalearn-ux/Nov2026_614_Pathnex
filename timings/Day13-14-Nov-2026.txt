@@ -1,0 +1,5 @@
+# What I did today
+#1. Revised all the kubernetes concept  - 1 hr
+#2. Practiced coding and pushed the code to GitHub - 1 hr
+#3  worked speaking for intro video  2 hr
+#4. watched previous batch video - 1.5 hr
