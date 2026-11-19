@@ -1,0 +1,5 @@
+# What I did today
+#1. Revised Argo CD concept - 1 hr
+#2. Practiced coding and pushed the code to GitHub - 1 hr
+#3  worked speaking for intro video  .5 hr
+#4  watched argoCd last batch session 1.5hr
