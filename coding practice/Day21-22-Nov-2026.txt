@@ -1,0 +1,101 @@
+# Ansible backup and restore files 
+
+- name: backup and restore files
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: create backup of /etc directory
+      command: tar -czvf /tmp/etc-backup.tar.gz /etc
+    - name: Copy backup to remote server
+      copy:
+        src: /tmp/etc-backup/tar.gz
+        dest: /tmp/etc-backup/tar.gz
+    - name: restore backup from remote server 
+      command: tar -xzvf /tmp/etc-backup.tar.gz -C /   
+
+# terraform create S3 with cross region
+
+resource "aws_s3_bucket" "pathnex_bucket" {
+    bucket = "pathnex-bucket
+    region = "us-east-1"
+
+    versioning {
+        enabled = true
+    }
+}
+
+resource "aws_s3_bucket_object" "pathnex_backup_files" {
+    bucket = aws_s3_bucket.pathnex.bucket
+    key = "backup.tar.gz" 
+    source = "pathnex-backup.tar.gz"
+}
+
+# kubernetes DR with PV
+
+apiVersion: apps/v1 
+kind: Statefulset
+metadata:
+  name: pathnex-statefulset
+spec:
+  serviceName: "pathnex"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pathnex
+  template:
+    metadata:
+      labels:
+        name: pathnex  
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html
+    volumeClaimTemplates:
+      - metadata:
+        name: web-content
+      spec:
+        acessModes: [ "ReadWriteOnce" ] 
+        resources"
+          requests"
+            storage: 6Gi            
+
+# jenkins backup strategy
+
+pipeline {
+    agent any 
+    stages {
+        stage('backup') {
+            steps {
+                echo 'backingup jenkins workspace'
+                sh 'tar -czvf /tmp/jenkins-backup.tar.gz $(WORKSPACE)'
+            }
+        }
+
+        stage('restore') {
+            steps {
+            echo 'Restoring jenkins workspace'
+            sh 'tar -xzvf /tmp/jenkins-backup.tar.gz -C $(WORKSPACE)' 
+
+
+            }
+        }
+    }
+}
+
+# GitLab CI 
+stages: 
+  - backup
+  - restore 
+
+backup:
+  stage: backup 
+  scripts:
+    - tar -czvf /tmp/backup.tar.gz kubernetes/deployment.yaml
+
+restore:
+  stage: restore
+  scripts:
+    - tar   -xzvf /tmp/jenkins-backup.tar.gz -C $(WORKSPACE)'    
