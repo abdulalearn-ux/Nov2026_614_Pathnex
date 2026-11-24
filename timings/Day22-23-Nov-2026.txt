@@ -1,0 +1,4 @@
+# What I did today
+#1. Revised today's GitLab CI/CD session - 1.5 hr
+#2. Practiced coding and pushed the code to GitHub - 1 hr
+#3  worked speaking for intro video  .5 hr
