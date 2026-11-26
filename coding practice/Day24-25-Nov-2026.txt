@@ -1,0 +1,93 @@
+#Ansible Deploy containers with kubernetes using helm
+
+- name: Deploy containers with helm 
+  hosts: localhost
+  tasks:
+    - name: Install nginx
+      command: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    - name: Deploy with helm 
+      command: helm install pathnex-app ./microservice-chart
+
+
+# Terraform multi module infra with output
+
+module "pathnex_vpc" {
+    source = "./vpc" 
+}
+
+module "pathnex_instance" {
+    source = "./instance"
+    vpc_id = module.pathnex_vpc.vpc_id
+}
+
+output "instance_id" {
+    value = module.pathnex_instance.instance_id
+}
+
+#kubernetes Deploy
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pathnex-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app:pathnex
+  template:
+    metadata:
+      labels:
+        app: pathnex
+    spec:
+      containers:
+        - image: nginx
+          ports:
+           -  containerPort: 80
+```
+apiVersion: autoscaling\v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pathnex-app 
+spec:
+  scaleTargetRef: 
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pathnex-app
+ minReplicas: 2
+ maxReplicas: 10
+ targetCPUUtilization: 80 
+
+# jenkins scaling CI/CD 
+
+pipeline {
+    agent any
+    stages {
+        stage("Scale UP") {
+            steps {
+                echo 'scaling up jenkinspipeline agents for heavy workloads'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building project'
+            }
+        }
+        stage ('Deploy') {
+            steps {
+                echo 'Deployment started'
+            }
+        }
+    }
+
+    
+}
+
+#Docker
+FROM nginx
+HEALTHCHECK CMD curl --fail http://localhost || exit 1
+
+
+
+              
