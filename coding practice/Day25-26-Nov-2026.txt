@@ -1,0 +1,119 @@
+#  setup prometheus node exporter
+
+'''
+- name: setup prometheus node exporter
+  hosts: all
+  become: true
+  tasks:
+    - name: install prometheus node exporter
+      yum:
+        - name: prometheus-node-exporter
+          state: present 
+    - name: Start Prometheus Node Exporter service
+      service:
+        - name: prometheus-node-exporter
+          enables: yes
+          state: started
+
+
+# terraform create cloudwatch alarm
+resource "aws_cloud_watch_metric_alarm" "pathnex_cpu_alram" {
+    alert_name = "pathnex-high-cpu-utilization"
+    comparison_operator = "GreaterThanTreshold"
+    evaluation_period = 1
+    metric_name = "CPU-Utilization"
+    namespace = "AWS/EC2"
+    period = "60"
+    statistic = "Average"
+    threshold = "80"
+
+    dimensions = {
+        InstanceId = aws_instance.pathnex_ec2.id
+    }
+
+    alarm_actions = [aws_instance.pathnex_ec2.id]
+}
+
+resource "aws_sns_topic" "pathnex_alerts" {
+    name = "pathnex-alerts"
+}
+
+# prometheus and grafana deployment
+
+apiVersion: app/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: app-prometheus
+  template:
+    metadata:
+      labels:
+        app: app-prometheus
+    containers:
+      - name: prometheus    
+        image: prometheus:latest
+        ports:
+          - containerPort: 9090        
+
+'''
+apiVersion: apps/v2
+kind: Deployment      
+metadata:
+  name: grafana-deployment
+selector:
+  replicas: 1
+  matchLabels:
+    app: grafana
+  template:
+    metadata:
+      labels:
+        name: grafana
+    containers:
+      - name: grafana
+        image: grafana:latest
+        ports:
+          - containerPort: 9000
+
+# jenkins - continous monitoring and alerts
+pipeline {
+    agent any 
+    stages {
+        stage ('Monitoring') {
+            steps {
+                script {
+                    echo 'Triggering cloudwatch alarm if CPU exceeds 80%'
+                    sh 'aws cloudwatch put-metric-data --namespace "AWS/EC2" --metric-name "CPUUtilization" --value 90'
+                }
+            }
+        }
+
+        stage ('Test') {
+            steps {
+                echo 'Running Test'
+            }
+        }
+    }
+}    
+
+#GitLab CI\
+stages:
+  - Monitoring
+  - Test
+
+- monitoring:
+  stage: monitoring
+  script:
+    - aws cloudwatch put-metric-data --namespace "AWS/EC2" --metric-name "CPUUtilization" --value 90
+
+
+Test:
+  stage: Test
+  script:
+    - echo 'Test is Running'
+
+
